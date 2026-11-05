@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Carrier Negotiation Dashboard - Logistics Carrier Performance &amp; Cost Audit</title>
+<meta name="description" content="Self-contained carrier cost and reliability dashboard built on the Meridian Supply Chain Dataset (synthetic).">
+<style>
+:root {
+  color-scheme: light;
+  --page: #f9f9f7; --surface: #fcfcfb; --card: #ffffff;
+  --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
+  --grid: #e1e0d9; --axis: #c3c2b7; --ring: rgba(11,11,11,0.10);
+  --c1: #2a78d6; --c2: #eb6834; --c3: #1baf7a; --c4: #eda100;
+  --freight: #6250d6; --failure: #e34948;
+  --gray-mark: #c9c8c1; --accent: #1f3a5f; --good: #006300; --bad: #b42318;
+  --seq-0: #eef4fc; --seq-1: #cde2fb; --seq-2: #9ec5f4; --seq-3: #5598e7; --seq-4: #256abf; --seq-5: #104281;
+  --shadow: 0 1px 2px rgba(11,11,11,.06), 0 4px 16px rgba(11,11,11,.04);
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --card: #1a1a19;
+    --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --axis: #383835; --ring: rgba(255,255,255,0.10);
+    --c1: #3987e5; --c2: #d95926; --c3: #199e70; --c4: #c98500;
+    --freight: #9085e9; --failure: #e66767; --gray-mark: #4a4a46; --accent: #86b6ef; --good: #0ca30c; --bad: #e66767;
+    --seq-0: #16263b; --seq-1: #184f95; --seq-2: #1c5cab; --seq-3: #2a78d6; --seq-4: #5598e7; --seq-5: #9ec5f4;
+    --shadow: none;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d; --surface: #1a1a19; --card: #1a1a19;
+  --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+  --grid: #2c2c2a; --axis: #383835; --ring: rgba(255,255,255,0.10);
+  --c1: #3987e5; --c2: #d95926; --c3: #199e70; --c4: #c98500;
+  --freight: #9085e9; --failure: #e66767; --gray-mark: #4a4a46; --accent: #86b6ef; --good: #0ca30c; --bad: #e66767;
+  --seq-0: #16263b; --seq-1: #184f95; --seq-2: #1c5cab; --seq-3: #2a78d6; --seq-4: #5598e7; --seq-5: #9ec5f4;
+  --shadow: none;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--page); color: var(--ink);
+  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+a { color: var(--accent); }
+.wrap { max-width: 1440px; margin: 0 auto; padding: 20px 24px 48px; }
+header.top { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+h1 { font-size: 22px; margin: 0; letter-spacing: -.01em; }
+.sub { color: var(--ink-2); font-size: 13px; margin-top: 2px; }
+.badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px;
+  border: 1px solid var(--ring); color: var(--ink-2); background: var(--card); margin-left: 6px; vertical-align: 2px; }
+.seg { display: inline-flex; border: 1px solid var(--ring); border-radius: 10px; overflow: hidden; background: var(--card); }
+.seg button { border: 0; background: transparent; color: var(--ink-2); font: inherit; font-weight: 600; padding: 9px 18px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--card); }
+:root[data-theme="dark"] .seg button[aria-pressed="true"] { color: #0d0d0d; }
+.seg button:focus-visible, .chip:focus-visible, select:focus-visible, th:focus-visible { outline: 2px solid var(--c1); outline-offset: 2px; }
+.icon-btn { border: 1px solid var(--ring); background: var(--card); color: var(--ink-2); border-radius: 10px; padding: 8px 12px; cursor: pointer; font: inherit; }
+.filters { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; background: var(--card); border: 1px solid var(--ring);
+  border-radius: 12px; padding: 12px 14px; margin-bottom: 16px; box-shadow: var(--shadow); }
+.filters label.fl { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; margin-right: 6px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--ring); background: var(--surface); color: var(--ink);
+  border-radius: 999px; padding: 4px 10px; font: inherit; font-size: 13px; cursor: pointer; margin-right: 4px; }
+.chip[aria-pressed="false"] { opacity: .45; text-decoration: line-through; }
+.sw { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+select { font: inherit; font-size: 13px; padding: 5px 8px; border-radius: 8px; border: 1px solid var(--ring); background: var(--surface); color: var(--ink); }
+.assume { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; font-size: 13px; color: var(--ink-2); }
+.assume input[type=range] { width: 120px; vertical-align: middle; }
+.assume output { font-weight: 700; color: var(--ink); min-width: 42px; display: inline-block; font-variant-numeric: tabular-nums; }
+.kpis { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
+.kpi { background: var(--card); border: 1px solid var(--ring); border-radius: 12px; padding: 14px 16px; box-shadow: var(--shadow); }
+.kpi .k { font-size: 12px; color: var(--ink-2); font-weight: 600; }
+.kpi .v { font-size: 26px; font-weight: 700; letter-spacing: -.02em; margin-top: 4px; }
+.kpi .d { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.section-h { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin: 26px 0 10px; }
+.section-h h2 { font-size: 17px; margin: 0; }
+.section-h .note { font-size: 12px; color: var(--muted); }
+.grid { display: grid; gap: 14px; }
+.g3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.g2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.card { background: var(--card); border: 1px solid var(--ring); border-radius: 12px; padding: 14px 16px 12px; box-shadow: var(--shadow); min-width: 0; }
+.card h3 { font-size: 14px; margin: 0 0 2px; }
+.card .cap { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--ink-2); margin: 2px 0 6px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart text { fill: var(--ink-2); font-size: 11px; font-variant-numeric: tabular-nums; }
+.chart .val { fill: var(--ink); font-weight: 600; }
+.chart .lab { fill: var(--ink); font-size: 12px; }
+.chart .gridl { stroke: var(--grid); stroke-width: 1; }
+.chart .axisl { stroke: var(--axis); stroke-width: 1; }
+.mark { transition: opacity .12s; }
+.mark:hover, .mark:focus { opacity: .82; outline: none; }
+.hit { fill: transparent; cursor: default; }
+table.dt { width: 100%; border-collapse: collapse; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+table.dt th { text-align: right; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 700;
+  border-bottom: 1px solid var(--axis); padding: 8px 6px; cursor: pointer; user-select: none; white-space: nowrap; position: sticky; top: 0; background: var(--card); }
+table.dt th:first-child, table.dt td:first-child { text-align: left; }
+table.dt th .arr { opacity: .5; margin-left: 3px; }
+table.dt td { text-align: right; padding: 7px 6px; border-bottom: 1px solid var(--grid); white-space: nowrap; }
+table.dt tr:hover td { background: var(--surface); }
+.tablewrap { overflow: auto; max-height: 460px; }
+.rank1 { font-weight: 700; color: var(--good); }
+.pos { color: var(--bad); font-weight: 600; } .neg { color: var(--good); font-weight: 600; }
+.verdict { border-left: 4px solid var(--failure); background: var(--surface); padding: 10px 14px; border-radius: 6px; margin: 6px 0 10px; font-size: 14px; }
+.verdict.ok { border-left-color: var(--good); }
+.callout { font-size: 13px; color: var(--ink-2); }
+.callout b { color: var(--ink); }
+.foot { margin-top: 30px; font-size: 12px; color: var(--muted); border-top: 1px solid var(--grid); padding-top: 12px; }
+.view-cost .only-rel, .view-rel .only-cost { display: none !important; }
+#tip { position: fixed; pointer-events: none; z-index: 50; background: var(--card); color: var(--ink); border: 1px solid var(--ring);
+  border-radius: 8px; padding: 8px 10px; font-size: 12px; box-shadow: 0 6px 24px rgba(0,0,0,.14); min-width: 160px; max-width: 300px; display: none; }
+#tip .tt { font-weight: 700; margin-bottom: 4px; color: var(--ink-2); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+#tip .row { display: flex; align-items: center; gap: 8px; justify-content: space-between; }
+#tip .row b { font-variant-numeric: tabular-nums; color: var(--ink); }
+#tip .row span.k { color: var(--ink-2); display: inline-flex; align-items: center; gap: 6px; }
+#tip .key { width: 12px; height: 2px; display: inline-block; }
+.empty { color: var(--muted); font-size: 13px; padding: 30px 0; text-align: center; }
+@media (max-width: 1100px) { .kpis { grid-template-columns: repeat(3, 1fr); } .g3 { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 760px) { .kpis { grid-template-columns: repeat(2, 1fr); } .g3, .g2 { grid-template-columns: 1fr; } .wrap { padding: 14px; } }
+@media print { .filters, .seg, .icon-btn { display: none; } .card, .kpi { box-shadow: none; break-inside: avoid; } }
+</style>
+</head>
+<body>
+<div class="wrap view-cost" id="app">
+  <header class="top">
+    <div>
+      <h1>Carrier Negotiation Dashboard <span class="badge" title="Meridian Supply Chain Dataset (Kaggle) is synthetic teaching data">SYNTHETIC DATA</span></h1>
+      <div class="sub">Logistics Carrier Performance &amp; Cost Audit &middot; Meridian Components (fictional) &middot; <span id="period"></span></div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center">
+      <div class="seg" role="group" aria-label="Dashboard view">
+        <button id="btnCost" aria-pressed="true">Cost view</button>
+        <button id="btnRel" aria-pressed="false">Reliability view</button>
+      </div>
+      <button class="icon-btn" id="btnTheme" title="Toggle light / dark">&#9680; Theme</button>
+    </div>
+  </header>
+
+  <section class="filters" aria-label="Filters">
+    <div><label class="fl">Carriers</label><span id="carrierChips"></span></div>
+    <div><label class="fl" for="fOrigin">Origin</label><select id="fOrigin"></select></div>
+    <div><label class="fl" for="fDest">Destination</label><select id="fDest"></select></div>
+    <div><label class="fl" for="fLane">Lane</label><select id="fLane"></select></div>
+    <div><label class="fl" for="fYear">Year</label><select id="fYear"></select></div>
+    <button class="icon-btn" id="btnReset">Reset filters</button>
+    <div class="assume" title="The dataset has no penalty or reshipment fields; these are modelled costs. Defaults match the Excel and SQL models.">
+      <label class="fl">Model assumptions</label>
+      <span>Late penalty <input type="range" id="aPen" min="0" max="0.15" step="0.005" aria-label="Late penalty rate"> <output id="oPen"></output> of revenue</span>
+      <span>Damage write-off <input type="range" id="aDmg" min="0" max="1" step="0.05" aria-label="Damage write-off share"> <output id="oDmg"></output> of units</span>
+    </div>
+  </section>
+
+  <section class="kpis" id="kpis" aria-label="Key performance indicators"></section>
+
+  <div class="section-h"><h2 id="carrierH">Carrier performance</h2><span class="note" id="carrierNote"></span></div>
+  <div class="grid g3 only-cost">
+    <div class="card"><h3>True cost per unit</h3><div class="cap">Invoiced freight + modelled failure cost (penalty, damage write-off, Air re-ship)</div>
+      <div class="legend"><span><i class="sw" style="background:var(--freight)"></i>Freight (invoiced)</span><span><i class="sw" style="background:var(--failure)"></i>Failure cost (modelled)</span></div>
+      <div class="chart" id="chTrueUnit"></div></div>
+    <div class="card"><h3>True cost per successful delivery</h3><div class="cap">True cost &divide; shipments delivered on time and undamaged</div><div class="chart" id="chPerSuccess"></div></div>
+    <div class="card"><h3>Hidden-cost uplift over freight invoice</h3><div class="cap">How much more each carrier really costs than its freight bill</div><div class="chart" id="chUplift"></div></div>
+  </div>
+  <div class="grid g3 only-rel">
+    <div class="card"><h3>On-time delivery %</h3><div class="cap">Dot = rate &middot; whisker = 95% confidence interval (Wilson)</div><div class="chart" id="chOnTime"></div></div>
+    <div class="card"><h3>Damage rate</h3><div class="cap">Dot = rate &middot; whisker = 95% confidence interval (Wilson)</div><div class="chart" id="chDamage"></div></div>
+    <div class="card"><h3>Transit days: quoted vs actual</h3><div class="cap">Quoted = carrier contract days &middot; actual = delivery &minus; ship date</div>
+      <div class="legend"><span><i class="sw" style="background:transparent;border:2px solid var(--ink-2);border-radius:50%"></i>Quoted</span><span><i class="sw" style="background:var(--ink-2);border-radius:50%"></i>Actual (avg)</span></div>
+      <div class="chart" id="chTransit"></div></div>
+  </div>
+  <div class="card" style="margin-top:14px">
+    <h3 id="tblCarrierH">Carrier comparison</h3><div class="cap">Click a column header to sort. Ranks recompute for the current filter.</div>
+    <div class="tablewrap"><table class="dt" id="tblCarrier"></table></div>
+  </div>
+
+  <div class="section-h"><h2>Lane performance</h2><span class="note">Lane = origin warehouse region &rarr; destination customer region</span></div>
+  <div class="grid g2">
+    <div class="card"><h3 id="laneRankH">Most problematic lanes</h3><div class="cap" id="laneRankCap"></div>
+      <div class="legend"><span><i class="sw" style="background:var(--c1)"></i>Top 3 lanes</span><span><i class="sw" style="background:var(--gray-mark)"></i>Other lanes</span></div>
+      <div class="chart" id="chLaneRank"></div></div>
+    <div class="card"><h3>Quoted vs actual transit days - highest variance lanes</h3><div class="cap">Sorted by average absolute deviation from quoted days</div>
+      <div class="legend"><span><i class="sw" style="background:transparent;border:2px solid var(--ink-2);border-radius:50%"></i>Avg quoted</span><span><i class="sw" style="background:var(--c1);border-radius:50%"></i>Avg actual</span></div>
+      <div class="chart" id="chLaneTransit"></div></div>
+  </div>
+  <div class="card" style="margin-top:14px"><h3 id="heatH">Carrier &times; lane comparison</h3><div class="cap" id="heatCap"></div>
+    <div class="chart" id="chHeat"></div></div>
+  <div class="card" style="margin-top:14px"><h3>Lane table</h3><div class="cap">Click a column header to sort.</div>
+    <div class="tablewrap"><table class="dt" id="tblLane"></table></div></div>
+
+  <div class="section-h"><h2>Negotiation scenarios</h2><span class="note">Computed on the full network (ignores filters) using the model assumptions above</span></div>
+  <div class="grid g2">
+    <div class="card"><h3>Proposed strategy test</h3>
+      <div class="cap">Shift 20% of the cheapest carrier's volume to the 2nd-cheapest carrier on its 3 most problematic lanes (&ge;30 shipments). Target: &minus;12% landed cost.</div>
+      <div id="stratVerdict"></div>
+      <div class="tablewrap"><table class="dt" id="tblStrat"></table></div>
+    </div>
+    <div class="card"><h3>Alternative lever: shift Air volume to Rail</h3>
+      <div class="cap">Projected saving as % of network true cost, by share of Air weight moved to Rail. Line = 12% target.</div>
+      <div class="chart" id="chModeShift"></div>
+      <div class="callout" id="modeShiftNote"></div>
+    </div>
+  </div>
+
+  <div class="foot">
+    <b>Data:</b> Meridian Supply Chain Dataset (Kaggle, nadhirmazariboufares/supply-chain-dataset, MIT licence). This is a <b>synthetic</b> dataset;
+    results describe a fictional company. Freight cost, on-time and damage flags are from the data; late penalties, damage write-offs and Air re-shipment
+    costs are <b>modelled</b> from the assumptions above (defaults: 2% of revenue, 25% of units, CARR-3 Air rate). On-time % uses the source
+    <code>on_time_flag</code>, which is inconsistent with the delivery dates in about half of shipments (see <a href="../limitations.md">limitations.md</a>).
+    Figures reconcile to <a href="../excel/cost_model_excel.xlsx">cost_model_excel.xlsx</a> and <a href="../sql/carrier_audit.sql">carrier_audit.sql</a>.
+    Full findings: <a href="../Negotiation_Brief.md">Negotiation_Brief.md</a>.
+  </div>
+</div>
+<div id="tip" role="tooltip"></div>
+
+<script>
+"use strict";
+/* ---------------------------------------------------------------- data */
+const DATA = /*__DATA__*/null;
+const C = DATA.carriers, L = DATA.lanes, ROWS = DATA.rows;
+// row: [carrier, lane, year, units, kg, revenue, goods, freight, quoted, actual, onTime, damaged]
+const COLOR = ["var(--c1)", "var(--c2)", "var(--c3)", "var(--c4)"];
+const AIR = C.findIndex(c => c.mode === "Air"), RAIL = C.findIndex(c => c.mode === "Rail");
+const state = { view: "cost", carriers: new Set(C.map((_, i) => i)), origin: "", dest: "", lane: "", year: "",
+  pen: DATA.assumptions.late_penalty_rate, dmg: DATA.assumptions.damage_writeoff_share };
+
+/* ---------------------------------------------------------------- formatting */
+const r2 = v => Math.round((v + Number.EPSILON) * 100) / 100;
+const fmt = {
+  usd0: v => (v < 0 ? "-$" : "$") + Math.abs(Math.round(v)).toLocaleString("en-US"),
+  usd2: v => (v < 0 ? "-$" : "$") + Math.abs(v).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+  usdM: v => { const s = v < 0 ? "-$" : "$", a = Math.abs(v);
+    return a >= 1e6 ? s + (a / 1e6).toFixed(2) + "M" : a >= 1e3 ? s + (a / 1e3).toFixed(1) + "K" : s + a.toFixed(0); },
+  pct1: v => (v * 100).toFixed(1) + "%", pct2: v => (v * 100).toFixed(2) + "%", pct3: v => (v * 100).toFixed(3) + "%",
+  int: v => Math.round(v).toLocaleString("en-US"), d2: v => v.toFixed(2),
+};
+
+/* ---------------------------------------------------------------- aggregation */
+function rowCosts(r) {
+  const late = 1 - r[10], dm = r[11];
+  const pen = r2(late * r[5] * state.pen);
+  const dmg = r2(dm * r[6] * state.dmg);
+  const rs = r2(dm * r[4] * state.dmg * DATA.reship_rate);
+  return [pen, dmg, rs];
+}
+function newAgg() { return { n: 0, units: 0, kg: 0, rev: 0, goods: 0, freight: 0, pen: 0, dmg: 0, rs: 0, onTime: 0, damaged: 0, success: 0, quoted: 0, actual: 0, absVar: 0, lateRev: 0 }; }
+function add(a, r) {
+  const [pen, dmg, rs] = rowCosts(r);
+  a.n++; a.units += r[3]; a.kg += r[4]; a.rev += r[5]; a.goods += r[6]; a.freight += r[7];
+  a.pen += pen; a.dmg += dmg; a.rs += rs; a.onTime += r[10]; a.damaged += r[11];
+  a.success += (r[10] === 1 && r[11] === 0) ? 1 : 0; a.quoted += r[8]; a.actual += r[9]; a.absVar += Math.abs(r[9] - r[8]);
+  a.lateRev += (1 - r[10]) * r[5];
+}
+function finish(a) {
+  a.failure = a.pen + a.dmg + a.rs; a.trueCost = a.freight + a.failure;
+  a.onTimePct = a.n ? a.onTime / a.n : 0; a.latePct = a.n ? 1 - a.onTimePct : 0; a.damageRate = a.n ? a.damaged / a.n : 0;
+  a.tcUnit = a.units ? a.trueCost / a.units : 0; a.frUnit = a.units ? a.freight / a.units : 0;
+  a.tcShip = a.n ? a.trueCost / a.n : 0; a.failShip = a.n ? a.failure / a.n : 0;
+  a.tcSuccess = a.success ? a.trueCost / a.success : 0; a.frOnTime = a.onTime ? a.freight / a.onTime : 0;
+  a.uplift = a.freight ? a.trueCost / a.freight - 1 : 0; a.frKg = a.kg ? a.freight / a.kg : 0;
+  a.avgQuoted = a.n ? a.quoted / a.n : 0; a.avgActual = a.n ? a.actual / a.n : 0; a.avgVar = a.avgActual - a.avgQuoted;
+  a.avgAbsVar = a.n ? a.absVar / a.n : 0;
+  return a;
+}
+function passes(r) {
+  if (!state.carriers.has(r[0])) return false;
+  const ln = L[r[1]];
+  if (state.origin && ln.o !== state.origin) return false;
+  if (state.dest && ln.d !== state.dest) return false;
+  if (state.lane !== "" && r[1] !== +state.lane) return false;
+  if (state.year && r[2] !== +state.year) return false;
+  return true;
+}
+function wilson(x, n) {
+  if (!n) return [0, 0];
+  const z = 1.96, p = x / n, den = 1 + z * z / n, c = (p + z * z / (2 * n)) / den;
+  const h = z * Math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / den;
+  return [c - h, c + h];
+}
+
+/* ---------------------------------------------------------------- tooltip */
+const tip = document.getElementById("tip");
+function showTip(ev, title, rows) {
+  tip.replaceChildren();
+  const t = document.createElement("div"); t.className = "tt"; t.textContent = title; tip.appendChild(t);
+  rows.forEach(([k, v, color]) => {
+    const row = document.createElement("div"); row.className = "row";
+    const b = document.createElement("b"); b.textContent = v;
+    const s = document.createElement("span"); s.className = "k";
+    if (color) { const key = document.createElement("i"); key.className = "key"; key.style.background = color; s.appendChild(key); }
+    s.appendChild(document.createTextNode(k));
+    row.appendChild(b); row.appendChild(s); tip.appendChild(row);
+  });
+  tip.style.display = "block";
+  moveTip(ev);
+}
+function moveTip(ev) {
+  let x, y;
+  if (ev.clientX !== undefined && ev.type !== "focus") { x = ev.clientX; y = ev.clientY; }
+  else { const b = ev.target.getBoundingClientRect(); x = b.right; y = b.top; }
+  const w = tip.offsetWidth, h = tip.offsetHeight;
+  tip.style.left = Math.min(window.innerWidth - w - 8, x + 14) + "px";
+  tip.style.top = Math.max(8, Math.min(window.innerHeight - h - 8, y + 14)) + "px";
+}
+function hideTip() { tip.style.display = "none"; }
+function bindTip(el, title, rows) {
+  el.setAttribute("tabindex", "0");
+  el.setAttribute("aria-label", title + ": " + rows.map(r => r[0] + " " + r[1]).join(", "));
+  el.addEventListener("pointermove", e => showTip(e, title, rows));
+  el.addEventListener("pointerleave", hideTip);
+  el.addEventListener("focus", e => showTip(e, title, rows));
+  el.addEventListener("blur", hideTip);
+}
+
+/* ---------------------------------------------------------------- svg helpers */
+const NS = "http://www.w3.org/2000/svg";
+function el(tag, attrs, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+function txt(parent, x, y, s, attrs = {}) { const t = el("text", Object.assign({ x, y }, attrs), parent); t.textContent = s; return t; }
+function svgFor(id, h) {
+  const host = document.getElementById(id); host.replaceChildren();
+  const w = Math.max(280, host.clientWidth || 400);
+  const svg = el("svg", { viewBox: `0 0 ${w} ${h}`, role: "img" }, host);
+  return [svg, w];
+}
+function niceMax(v) { if (v <= 0) return 1; const p = Math.pow(10, Math.floor(Math.log10(v))); const m = v / p; return (m <= 1 ? 1 : m <= 2 ? 2 : m <= 2.5 ? 2.5 : m <= 5 ? 5 : 10) * p; }
+function ticks(max, n) { if (!n) { const m = max / Math.pow(10, Math.floor(Math.log10(max))); n = Math.abs(m - 2) < 1e-9 ? 4 : 5; } const s = max / n; return Array.from({ length: n + 1 }, (_, i) => i * s); }
+// bar with 4px rounded data end, square at baseline (horizontal)
+function hbarPath(x0, y, len, h, r = 4) {
+  if (len <= 0) return "";
+  r = Math.min(r, len, h / 2);
+  return `M${x0},${y}H${x0 + len - r}Q${x0 + len},${y} ${x0 + len},${y + r}V${y + h - r}Q${x0 + len},${y + h} ${x0 + len - r},${y + h}H${x0}Z`;
+}
+function vbarPath(x, y0, w, len, r = 4) {
+  if (len <= 0) return "";
+  r = Math.min(r, len, w / 2);
+  return `M${x},${y0}V${y0 - len + r}Q${x},${y0 - len} ${x + r},${y0 - len}H${x + w - r}Q${x + w},${y0 - len} ${x + w},${y0 - len + r}V${y0}Z`;
+}
+
+/* Horizontal bar chart: items [{label, color, segs:[{v,color,name}], total, valueText, tip:[...]}] */
+function hbars(id, items, { labelW = 110, rowH = 30, barH = 16, fmtAxis = fmt.usd2, highlight } = {}) {
+  if (!items.length) { document.getElementById(id).innerHTML = '<div class="empty">No data for the current filter</div>'; return; }
+  const h = items.length * rowH + 26;
+  const [svg, w] = svgFor(id, h);
+  const x0 = labelW, x1 = w - 56, max = niceMax(Math.max(...items.map(d => d.total)));
+  const sx = v => (v / max) * (x1 - x0);
+  ticks(max).forEach(t => {
+    const x = x0 + sx(t);
+    el("line", { x1: x, x2: x, y1: 0, y2: h - 20, class: "gridl" }, svg);
+    txt(svg, x, h - 6, fmtAxis(t), { "text-anchor": "middle" });
+  });
+  items.forEach((d, i) => {
+    const y = i * rowH + (rowH - barH) / 2;
+    txt(svg, x0 - 8, y + barH / 2 + 4, d.label, { "text-anchor": "end", class: "lab" });
+    let acc = 0;
+    const g = el("g", { class: "mark" }, svg);
+    d.segs.forEach((s, k) => {
+      const len = sx(s.v); if (len <= 0) return;
+      const last = k === d.segs.length - 1 || d.segs.slice(k + 1).every(q => q.v <= 0);
+      const gap = acc > 0 ? 2 : 0;   // 2px surface gap between stacked fills
+      if (last) el("path", { d: hbarPath(x0 + sx(acc) + gap, y, Math.max(0, len - gap), barH), fill: s.color }, g);
+      else el("rect", { x: x0 + sx(acc) + gap, y, width: Math.max(0, len - gap), height: barH, fill: s.color }, g);
+      acc += s.v;
+    });
+    txt(svg, x0 + sx(d.total) + 6, y + barH / 2 + 4, d.valueText, { class: "val" });
+    const hit = el("rect", { x: 0, y: i * rowH, width: w, height: rowH, class: "hit" }, svg);
+    bindTip(hit, d.label, d.tip);
+  });
+  el("line", { x1: x0, x2: x0, y1: 0, y2: h - 20, class: "axisl" }, svg);
+}
+
+/* Dot + CI chart (reliability) */
+function dotCI(id, items, { labelW = 110, rowH = 34, fmtV = fmt.pct1 } = {}) {
+  if (!items.length) { document.getElementById(id).innerHTML = '<div class="empty">No data for the current filter</div>'; return; }
+  const h = items.length * rowH + 26;
+  const [svg, w] = svgFor(id, h);
+  const lo = Math.min(...items.map(d => d.lo)), hi = Math.max(...items.map(d => d.hi));
+  const pad = (hi - lo) * 0.15 || 0.01, a = Math.max(0, lo - pad), b = Math.min(1, hi + pad);
+  const x0 = labelW, x1 = w - 60, sx = v => x0 + (v - a) / (b - a) * (x1 - x0);
+  ticks(1, 4).map(t => a + t * (b - a)).forEach(t => {
+    el("line", { x1: sx(t), x2: sx(t), y1: 0, y2: h - 20, class: "gridl" }, svg);
+    txt(svg, sx(t), h - 6, fmtV(t), { "text-anchor": "middle" });
+  });
+  items.forEach((d, i) => {
+    const y = i * rowH + rowH / 2;
+    txt(svg, x0 - 8, y + 4, d.label, { "text-anchor": "end", class: "lab" });
+    const g = el("g", { class: "mark" }, svg);
+    el("line", { x1: sx(d.lo), x2: sx(d.hi), y1: y, y2: y, stroke: d.color, "stroke-width": 2 }, g);
+    el("line", { x1: sx(d.lo), x2: sx(d.lo), y1: y - 5, y2: y + 5, stroke: d.color, "stroke-width": 2 }, g);
+    el("line", { x1: sx(d.hi), x2: sx(d.hi), y1: y - 5, y2: y + 5, stroke: d.color, "stroke-width": 2 }, g);
+    el("circle", { cx: sx(d.v), cy: y, r: 6, fill: d.color, stroke: "var(--card)", "stroke-width": 2 }, g);
+    txt(svg, sx(d.hi) + 8, y + 4, fmtV(d.v), { class: "val" });
+    const hit = el("rect", { x: 0, y: y - rowH / 2, width: w, height: rowH, class: "hit" }, svg);
+    bindTip(hit, d.label, d.tip);
+  });
+}
+
+/* Dumbbell: quoted (hollow) vs actual (filled) */
+function dumbbell(id, items, { labelW = 110, rowH = 28, colorOf } = {}) {
+  if (!items.length) { document.getElementById(id).innerHTML = '<div class="empty">No data for the current filter</div>'; return; }
+  const h = items.length * rowH + 26;
+  const [svg, w] = svgFor(id, h);
+  const max = niceMax(Math.max(...items.map(d => Math.max(d.q, d.a))));
+  const x0 = labelW, x1 = w - 20, sx = v => x0 + v / max * (x1 - x0);
+  ticks(max).forEach(t => { el("line", { x1: sx(t), x2: sx(t), y1: 0, y2: h - 20, class: "gridl" }, svg); txt(svg, sx(t), h - 6, t.toFixed(t % 1 ? 1 : 0) + "d", { "text-anchor": "middle" }); });
+  items.forEach((d, i) => {
+    const y = i * rowH + rowH / 2, col = colorOf ? colorOf(d) : "var(--c1)";
+    txt(svg, x0 - 8, y + 4, d.label, { "text-anchor": "end", class: "lab" });
+    const g = el("g", { class: "mark" }, svg);
+    el("line", { x1: sx(d.q), x2: sx(d.a), y1: y, y2: y, stroke: "var(--axis)", "stroke-width": 2 }, g);
+    el("circle", { cx: sx(d.q), cy: y, r: 5, fill: "var(--card)", stroke: "var(--ink-2)", "stroke-width": 2 }, g);
+    el("circle", { cx: sx(d.a), cy: y, r: 5.5, fill: col, stroke: "var(--card)", "stroke-width": 2 }, g);
+    const hit = el("rect", { x: 0, y: y - rowH / 2, width: w, height: rowH, class: "hit" }, svg);
+    bindTip(hit, d.label, d.tip);
+  });
+}
+
+/* Vertical bars with a reference line */
+function vbars(id, items, { h = 220, ref, refLabel, fmtV = fmt.pct1 } = {}) {
+  const [svg, w] = svgFor(id, h);
+  const x0 = 46, x1 = w - 10, y0 = h - 28, top = 18;
+  const max = niceMax(Math.max(ref || 0, ...items.map(d => d.v)) * 1.05);
+  const sy = v => (v / max) * (y0 - top);
+  ticks(max).forEach(t => { el("line", { x1: x0, x2: x1, y1: y0 - sy(t), y2: y0 - sy(t), class: "gridl" }, svg); txt(svg, x0 - 6, y0 - sy(t) + 4, fmtV(t), { "text-anchor": "end" }); });
+  const bw = (x1 - x0) / items.length, barW = Math.min(46, bw * 0.6);
+  items.forEach((d, i) => {
+    const x = x0 + i * bw + (bw - barW) / 2;
+    el("path", { d: vbarPath(x, y0, barW, sy(d.v)), fill: d.color, class: "mark" }, svg);
+    txt(svg, x + barW / 2, y0 + 16, d.label, { "text-anchor": "middle" });
+    txt(svg, x + barW / 2, y0 - sy(d.v) - 5, fmtV(d.v), { "text-anchor": "middle", class: "val" });
+    const hit = el("rect", { x: x0 + i * bw, y: top, width: bw, height: y0 - top, class: "hit" }, svg);
+    bindTip(hit, d.tipTitle || d.label, d.tip);
+  });
+  el("line", { x1: x0, x2: x1, y1: y0, y2: y0, class: "axisl" }, svg);
+  if (ref) {
+    el("line", { x1: x0, x2: x1, y1: y0 - sy(ref), y2: y0 - sy(ref), stroke: "var(--ink)", "stroke-width": 1.5 }, svg);
+    txt(svg, x0 + 6, y0 - sy(ref) - 6, refLabel, { "text-anchor": "start", class: "val" });
+  }
+}
+
+/* Heatmap carrier x lane */
+function heatmap(id, rows, cols, cell, { fmtV, higherIsBetter, legendLabel, perColumn }) {
+  const host = document.getElementById(id); host.replaceChildren();
+  const vals = []; rows.forEach(r => cols.forEach(c => { const v = cell(r, c); if (v && v.n) vals.push(v.v); }));
+  if (!vals.length) { host.innerHTML = '<div class="empty">No data for the current filter</div>'; return; }
+  const lo = Math.min(...vals), hi = Math.max(...vals);
+  const steps = ["var(--seq-0)", "var(--seq-1)", "var(--seq-2)", "var(--seq-3)", "var(--seq-4)", "var(--seq-5)"];
+  const colRange = {}; cols.forEach(c => { const vs = rows.map(r => cell(r, c)).filter(v => v && v.n).map(v => v.v); colRange[c.label] = [Math.min(...vs), Math.max(...vs)]; });
+  const step = (v, c) => { const [a, b] = perColumn ? colRange[c.label] : [lo, hi]; let t = b > a ? (v - a) / (b - a) : 0.5; if (higherIsBetter) t = 1 - t; return Math.min(5, Math.floor(t * 6)); };
+  const labelW = 150, cellH = 22, headH = 26, w = Math.max(320, host.clientWidth || 600);
+  const cw = (w - labelW) / cols.length, h = headH + rows.length * cellH + 40;
+  const svg = el("svg", { viewBox: `0 0 ${w} ${h}`, role: "img" }, host);
+  cols.forEach((c, j) => txt(svg, labelW + j * cw + cw / 2, 16, c.label, { "text-anchor": "middle", class: "lab" }));
+  rows.forEach((r, i) => {
+    const y = headH + i * cellH;
+    txt(svg, labelW - 8, y + cellH / 2 + 4, r.label, { "text-anchor": "end" });
+    cols.forEach((c, j) => {
+      const v = cell(r, c), x = labelW + j * cw;
+      if (!v || !v.n) { el("rect", { x: x + 1, y: y + 1, width: cw - 2, height: cellH - 2, fill: "var(--surface)", rx: 3 }, svg); return; }
+      const s = step(v.v, c);
+      const rc = el("rect", { x: x + 1, y: y + 1, width: cw - 2, height: cellH - 2, fill: steps[s], rx: 3, class: "mark" }, svg);
+      txt(svg, x + cw / 2, y + cellH / 2 + 4, fmtV(v.v), { "text-anchor": "middle", style: `fill:${s >= 3 ? "#ffffff" : "var(--ink)"};font-size:11px` });
+      bindTip(rc, r.label + " - " + c.label, [[legendLabel, fmtV(v.v)], ["Shipments", fmt.int(v.n)]]);
+    });
+  });
+  // scale legend
+  const ly = h - 24, lw = Math.min(300, w - labelW);
+  steps.forEach((s, k) => el("rect", { x: labelW + k * lw / 6, y: ly, width: lw / 6 - 2, height: 10, fill: s, rx: 2 }, svg));
+  if (perColumn) { txt(svg, labelW, ly + 22, "lowest in column"); txt(svg, labelW + lw, ly + 22, "highest in column", { "text-anchor": "end" }); }
+  else { txt(svg, labelW, ly + 22, (higherIsBetter ? "better  " : "") + fmtV(higherIsBetter ? hi : lo));
+  txt(svg, labelW + lw, ly + 22, fmtV(higherIsBetter ? lo : hi) + (higherIsBetter ? "  worse" : "  higher cost"), { "text-anchor": "end" }); }
+}
+
+/* ---------------------------------------------------------------- sortable tables */
+const sortState = {};
+function table(id, cols, data, defaultSort) {
+  const t = document.getElementById(id); t.replaceChildren();
+  const st = sortState[id] || defaultSort || { key: cols[0].key, dir: 1 };
+  if (!cols.find(c => c.key === st.key)) { st.key = (defaultSort || {}).key || cols[0].key; st.dir = (defaultSort || {}).dir || 1; }
+  sortState[id] = st;
+  const thead = document.createElement("thead"), tr = document.createElement("tr");
+  cols.forEach(c => {
+    const th = document.createElement("th"); th.textContent = c.label; th.tabIndex = 0; th.title = c.title || "Sort by " + c.label;
+    if (c.key === st.key) { const a = document.createElement("span"); a.className = "arr"; a.textContent = st.dir > 0 ? "▲" : "▼"; th.appendChild(a); }
+    th.setAttribute("aria-sort", c.key === st.key ? (st.dir > 0 ? "ascending" : "descending") : "none");
+    const go = () => { if (st.key === c.key) st.dir *= -1; else { st.key = c.key; st.dir = c.desc ? -1 : 1; } table(id, cols, data, defaultSort); };
+    th.addEventListener("click", go); th.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } });
+    tr.appendChild(th);
+  });
+  thead.appendChild(tr); t.appendChild(thead);
+  const col = cols.find(c => c.key === st.key);
+  const sorted = [...data].sort((a, b) => { const x = col.sortVal ? col.sortVal(a) : a[col.key], y = col.sortVal ? col.sortVal(b) : b[col.key];
+    return (typeof x === "string" ? x.localeCompare(y) : x - y) * st.dir; });
+  const tb = document.createElement("tbody");
+  sorted.forEach(d => {
+    const r = document.createElement("tr");
+    cols.forEach(c => {
+      const td = document.createElement("td");
+      if (c.swatch) { const s = document.createElement("i"); s.className = "sw"; s.style.background = c.swatch(d); s.style.marginRight = "6px"; td.appendChild(s); }
+      td.appendChild(document.createTextNode(c.fmt ? c.fmt(d[c.key], d) : d[c.key]));
+      if (c.cls) { const k = c.cls(d); if (k) td.className = k; }
+      r.appendChild(td);
+    });
+    tb.appendChild(r);
+  });
+  t.appendChild(tb);
+}
+
+/* ---------------------------------------------------------------- scenarios (full network) */
+function scenarios() {
+  const cl = {}, car = C.map(() => newAgg());
+  ROWS.forEach(r => { const k = r[0] + "|" + r[1]; (cl[k] = cl[k] || newAgg()); add(cl[k], r); add(car[r[0]], r); });
+  Object.values(cl).forEach(finish); car.forEach(finish);
+  const total = car.reduce((s, a) => s + a.trueCost, 0);
+  const byRate = C.map((c, i) => i).sort((a, b) => C[a].rate - C[b].rate);
+  const from = byRate[0], to = byRate[1], sh = DATA.assumptions.shift_share, R = DATA.reship_rate;
+  const lanes = L.map((_, j) => j).filter(j => cl[from + "|" + j] && cl[from + "|" + j].n >= DATA.assumptions.min_lane_shipments)
+    .sort((a, b) => cl[from + "|" + b].failShip - cl[from + "|" + a].failShip).slice(0, DATA.assumptions.n_problem_lanes);
+  const exp = (a, kg, rev, goods) => kg * a.frKg + rev * a.latePct * state.pen + goods * a.damageRate * state.dmg + kg * a.damageRate * state.dmg * R;
+  const rows = lanes.map(j => {
+    const A = cl[from + "|" + j], B = cl[to + "|" + j], kg = A.kg * sh, rev = A.rev * sh, goods = A.goods * sh;
+    const base = exp(A, kg, rev, goods), scen = B ? exp(B, kg, rev, goods) : base;
+    return { lane: L[j].name, fromN: A.n, toN: B ? B.n : 0, kg, base, scen, delta: scen - base, fromFail: A.failShip, fromLate: A.latePct, toLate: B ? B.latePct : 0 };
+  });
+  const delta = rows.reduce((s, r) => s + r.delta, 0);
+  // Air -> Rail mode shift
+  const A = car[AIR], B = car[RAIL], revKg = A.rev / A.kg, goodsKg = A.goods / A.kg;
+  const cpk = a => a.frKg + a.latePct * state.pen * revKg + a.damageRate * state.dmg * (goodsKg + R);
+  const savKg = cpk(A) - cpk(B);
+  const shares = [0.05, 0.10, 0.15, 0.20, 0.25, 0.30].map(s => ({ s, saving: savKg * A.kg * s, pct: savKg * A.kg * s / total }));
+  const need = DATA.assumptions.target_reduction * total / (savKg * A.kg);
+  // break-even penalty: cheapest vs 2nd cheapest on true cost/unit
+  const fx = a => (a.freight + a.dmg + a.rs) / a.units, lr = a => a.lateRev / a.units;
+  const be = (fx(car[to]) - fx(car[from])) / (lr(car[from]) - lr(car[to]));
+  return { from, to, rows, delta, total, pct: delta / total, shares, need, be };
+}
+
+/* ---------------------------------------------------------------- render */
+function render() {
+  document.getElementById("app").className = "wrap view-" + state.view;
+  document.getElementById("oPen").textContent = fmt.pct1(state.pen);
+  document.getElementById("oDmg").textContent = Math.round(state.dmg * 100) + "%";
+  const rows = ROWS.filter(passes);
+  const tot = newAgg(), byC = C.map(() => newAgg()), byL = L.map(() => newAgg()), byCL = {};
+  rows.forEach(r => { add(tot, r); add(byC[r[0]], r); add(byL[r[1]], r); const k = r[0] + "|" + r[1]; (byCL[k] = byCL[k] || newAgg()); add(byCL[k], r); });
+  finish(tot); byC.forEach(finish); byL.forEach(finish); Object.values(byCL).forEach(finish);
+  const active = C.map((c, i) => Object.assign({ i, name: c.name, mode: c.mode, rate: c.rate, color: COLOR[i] }, byC[i])).filter(d => d.n > 0);
+
+  // KPIs
+  const K = [["Total shipments", fmt.int(tot.n), fmt.int(tot.units) + " units"],
+    ["Total freight cost", fmt.usdM(tot.freight), "invoiced by carriers"],
+    ["Total true cost", fmt.usdM(tot.trueCost), "+" + fmt.pct1(tot.uplift) + " vs freight"],
+    ["On-time delivery", fmt.pct1(tot.onTimePct), fmt.int(tot.n - tot.onTime) + " late shipments"],
+    ["Damage rate", fmt.pct2(tot.damageRate), fmt.int(tot.damaged) + " damaged shipments"],
+    ["True cost / successful delivery", fmt.usd0(tot.tcSuccess), fmt.int(tot.success) + " on-time & undamaged"]];
+  const kp = document.getElementById("kpis"); kp.replaceChildren();
+  K.forEach(([k, v, d]) => { const c = document.createElement("div"); c.className = "kpi";
+    [["k", k], ["v", v], ["d", d]].forEach(([cl, s]) => { const e = document.createElement("div"); e.className = cl; e.textContent = s; c.appendChild(e); }); kp.appendChild(c); });
+
+  const W = state.pen, nm = d => d.name;
+  // composite score
+  const mm = (arr, f, inv) => { const v = arr.map(f), lo = Math.min(...v), hi = Math.max(...v); return arr.map(d => hi > lo ? (inv ? 1 - (f(d) - lo) / (hi - lo) : (f(d) - lo) / (hi - lo)) : 1); };
+  const cs = mm(active, d => d.tcUnit, true), rs = mm(active, d => d.onTimePct, false), ds = mm(active, d => d.damageRate, true);
+  active.forEach((d, k) => { d.score = 100 * (0.5 * cs[k] + 0.3 * rs[k] + 0.2 * ds[k]); });
+  const rank = (f, asc) => { const s = [...active].sort((a, b) => asc ? f(a) - f(b) : f(b) - f(a)); active.forEach(d => d["_r"] = 0); return d => s.findIndex(x => x === d) + 1; };
+  const rCost = rank(d => d.tcUnit, true), rRel = rank(d => d.onTimePct, false), rDmg = rank(d => d.damageRate, true), rAll = rank(d => d.score, false);
+  const rRate = rank(d => d.rate, true);
+  active.forEach(d => { d.rankCost = rCost(d); d.rankRel = rRel(d); d.rankDmg = rDmg(d); d.rankAll = rAll(d); d.rankRate = rRate(d); });
+
+  if (state.view === "cost") {
+    document.getElementById("carrierH").textContent = "Carrier performance - cost view";
+    document.getElementById("carrierNote").textContent = "Lower is better";
+    const s1 = [...active].sort((a, b) => a.tcUnit - b.tcUnit);
+    hbars("chTrueUnit", s1.map(d => ({ label: nm(d), total: d.tcUnit, valueText: fmt.usd2(d.tcUnit),
+      segs: [{ v: d.frUnit, color: "var(--freight)" }, { v: d.failure / d.units, color: "var(--failure)" }],
+      tip: [["Freight / unit", fmt.usd2(d.frUnit), "var(--freight)"], ["Failure cost / unit", fmt.usd2(d.failure / d.units), "var(--failure)"],
+        ["  late penalties", fmt.usd0(d.pen)], ["  damage write-off", fmt.usd0(d.dmg)], ["  Air re-shipment", fmt.usd0(d.rs)], ["True cost / unit", fmt.usd2(d.tcUnit)]] })));
+    const s2 = [...active].sort((a, b) => a.tcSuccess - b.tcSuccess);
+    hbars("chPerSuccess", s2.map(d => ({ label: nm(d), total: d.tcSuccess, valueText: fmt.usd0(d.tcSuccess), segs: [{ v: d.tcSuccess, color: d.color }],
+      tip: [["True cost / successful delivery", fmt.usd2(d.tcSuccess), d.color], ["Freight / on-time delivery", fmt.usd2(d.frOnTime)], ["Successful deliveries", fmt.int(d.success)]] })), { fmtAxis: fmt.usdM });
+    const s3 = [...active].sort((a, b) => b.uplift - a.uplift);
+    hbars("chUplift", s3.map(d => ({ label: nm(d), total: d.uplift, valueText: fmt.pct1(d.uplift), segs: [{ v: d.uplift, color: d.color }],
+      tip: [["Hidden-cost uplift", fmt.pct1(d.uplift), d.color], ["Freight cost", fmt.usd0(d.freight)], ["Failure cost", fmt.usd0(d.failure)], ["True cost", fmt.usd0(d.trueCost)]] })), { fmtAxis: v => (v * 100).toFixed(0) + "%" });
+    document.getElementById("tblCarrierH").textContent = "Carrier comparison - cost ranking";
+    table("tblCarrier", [
+      { key: "name", label: "Carrier", swatch: d => d.color },
+      { key: "rate", label: "Rate / kg", fmt: fmt.usd2 }, { key: "rankRate", label: "Rate rank" },
+      { key: "n", label: "Shipments", fmt: fmt.int, desc: true }, { key: "freight", label: "Freight cost", fmt: fmt.usd0, desc: true },
+      { key: "pen", label: "Penalty cost", fmt: fmt.usd0, desc: true }, { key: "dmg", label: "Damage cost", fmt: fmt.usd0, desc: true },
+      { key: "rs", label: "Reship cost", fmt: fmt.usd0, desc: true }, { key: "trueCost", label: "True cost", fmt: fmt.usd0, desc: true },
+      { key: "tcShip", label: "True cost / shipment", fmt: fmt.usd2 }, { key: "tcUnit", label: "True cost / unit", fmt: fmt.usd2 },
+      { key: "tcSuccess", label: "Cost / successful delivery", fmt: fmt.usd2 }, { key: "uplift", label: "Uplift", fmt: fmt.pct1, desc: true },
+      { key: "rankCost", label: "Cost rank", cls: d => d.rankCost === 1 ? "rank1" : "" }], active, { key: "rankCost", dir: 1 });
+  } else {
+    document.getElementById("carrierH").textContent = "Carrier performance - reliability view";
+    document.getElementById("carrierNote").textContent = "Overlapping whiskers = difference not statistically meaningful";
+    const s1 = [...active].sort((a, b) => b.onTimePct - a.onTimePct);
+    dotCI("chOnTime", s1.map(d => { const [lo, hi] = wilson(d.onTime, d.n); return { label: nm(d), v: d.onTimePct, lo, hi, color: d.color,
+      tip: [["On-time %", fmt.pct1(d.onTimePct), d.color], ["95% CI", fmt.pct1(lo) + " - " + fmt.pct1(hi)], ["Late %", fmt.pct1(d.latePct)], ["Shipments", fmt.int(d.n)]] }; }));
+    const s2 = [...active].sort((a, b) => a.damageRate - b.damageRate);
+    dotCI("chDamage", s2.map(d => { const [lo, hi] = wilson(d.damaged, d.n); return { label: nm(d), v: d.damageRate, lo, hi, color: d.color,
+      tip: [["Damage rate", fmt.pct2(d.damageRate), d.color], ["95% CI", fmt.pct2(lo) + " - " + fmt.pct2(hi)], ["Damaged shipments", fmt.int(d.damaged)]] }; }), { fmtV: fmt.pct1 });
+    dumbbell("chTransit", active.map(d => ({ label: nm(d), q: d.avgQuoted, a: d.avgActual, color: d.color,
+      tip: [["Quoted days", fmt.d2(d.avgQuoted)], ["Avg actual days", fmt.d2(d.avgActual), d.color], ["Variance", (d.avgVar >= 0 ? "+" : "") + fmt.d2(d.avgVar) + " d"]] })), { colorOf: d => d.color });
+    document.getElementById("tblCarrierH").textContent = "Carrier comparison - reliability ranking";
+    table("tblCarrier", [
+      { key: "name", label: "Carrier", swatch: d => d.color }, { key: "n", label: "Shipments", fmt: fmt.int, desc: true },
+      { key: "onTimePct", label: "On-time %", fmt: fmt.pct1, desc: true }, { key: "latePct", label: "Late %", fmt: fmt.pct1 },
+      { key: "damageRate", label: "Damage rate", fmt: fmt.pct2 }, { key: "success", label: "Successful", fmt: fmt.int, desc: true },
+      { key: "avgQuoted", label: "Quoted days", fmt: fmt.d2 }, { key: "avgActual", label: "Avg actual days", fmt: fmt.d2 },
+      { key: "avgVar", label: "Variance (d)", fmt: v => (v >= 0 ? "+" : "") + fmt.d2(v) },
+      { key: "rankRel", label: "Reliability rank", cls: d => d.rankRel === 1 ? "rank1" : "" }, { key: "rankDmg", label: "Damage rank" },
+      { key: "score", label: "Composite score", fmt: v => v.toFixed(1), desc: true, title: "50% true cost/unit, 30% on-time %, 20% damage rate" },
+      { key: "rankAll", label: "Overall rank", cls: d => d.rankAll === 1 ? "rank1" : "" }], active, { key: "rankRel", dir: 1 });
+  }
+
+  // lanes
+  const lanes = L.map((l, j) => Object.assign({ j, name: l.name, o: l.o, d: l.d }, byL[j])).filter(d => d.n > 0);
+  const metric = state.view === "cost" ? { f: d => d.failShip, fmt: fmt.usd0, axis: fmt.usdM, h: "Most problematic lanes - failure cost per shipment", cap: "Modelled penalty + damage + re-ship cost per shipment, all selected carriers" }
+                                       : { f: d => d.latePct, fmt: fmt.pct1, axis: v => (v * 100).toFixed(0) + "%", h: "Most problematic lanes - late delivery %", cap: "Share of shipments flagged late, all selected carriers" };
+  document.getElementById("laneRankH").textContent = metric.h; document.getElementById("laneRankCap").textContent = metric.cap;
+  const ls = [...lanes].sort((a, b) => metric.f(b) - metric.f(a));
+  hbars("chLaneRank", ls.map((d, k) => ({ label: d.name, total: metric.f(d), valueText: metric.fmt(metric.f(d)), segs: [{ v: metric.f(d), color: k < 3 ? "var(--c1)" : "var(--gray-mark)" }],
+    tip: [["Failure cost / shipment", fmt.usd2(d.failShip)], ["Late %", fmt.pct1(d.latePct)], ["Damage rate", fmt.pct2(d.damageRate)], ["Shipments", fmt.int(d.n)]] })),
+    { labelW: 150, rowH: 22, barH: 12, fmtAxis: metric.axis });
+  const lv = [...lanes].sort((a, b) => b.avgAbsVar - a.avgAbsVar).slice(0, 12);
+  dumbbell("chLaneTransit", lv.map(d => ({ label: d.name, q: d.avgQuoted, a: d.avgActual,
+    tip: [["Avg quoted days", fmt.d2(d.avgQuoted)], ["Avg actual days", fmt.d2(d.avgActual), "var(--c1)"], ["Avg abs. deviation", fmt.d2(d.avgAbsVar) + " d"], ["Shipments", fmt.int(d.n)]] })), { labelW: 150, rowH: 24 });
+  // heatmap
+  const hmRows = ls.map(d => ({ label: d.name, j: d.j })), hmCols = active.map(d => ({ label: d.name, i: d.i }));
+  if (state.view === "cost") {
+    document.getElementById("heatH").textContent = "Carrier x lane - true cost per shipment";
+    document.getElementById("heatCap").textContent = "Shaded within each carrier column (darker = more expensive lane for that carrier), because Air costs ~5-10x the others. Hover for sample size.";
+    heatmap("chHeat", hmRows, hmCols, (r, c) => { const a = byCL[c.i + "|" + r.j]; return a ? { v: a.tcShip, n: a.n } : null; }, { fmtV: fmt.usd0, higherIsBetter: false, legendLabel: "True cost / shipment", perColumn: true });
+  } else {
+    document.getElementById("heatH").textContent = "Carrier x lane - on-time delivery %";
+    document.getElementById("heatCap").textContent = "Darker = worse on-time performance. Cells hold ~30-100 shipments, so single-cell differences are noisy.";
+    heatmap("chHeat", hmRows, hmCols, (r, c) => { const a = byCL[c.i + "|" + r.j]; return a ? { v: a.onTimePct, n: a.n } : null; }, { fmtV: fmt.pct1, higherIsBetter: true, legendLabel: "On-time %" });
+  }
+  table("tblLane", [
+    { key: "name", label: "Lane" }, { key: "n", label: "Shipments", fmt: fmt.int, desc: true },
+    { key: "avgQuoted", label: "Avg quoted d", fmt: fmt.d2 }, { key: "avgActual", label: "Avg actual d", fmt: fmt.d2 },
+    { key: "avgVar", label: "Variance d", fmt: v => (v >= 0 ? "+" : "") + fmt.d2(v) }, { key: "latePct", label: "Late %", fmt: fmt.pct1, desc: true },
+    { key: "damageRate", label: "Damage rate", fmt: fmt.pct2, desc: true }, { key: "frKg", label: "Freight / kg", fmt: v => "$" + v.toFixed(4) },
+    { key: "failShip", label: "Failure cost / shipment", fmt: fmt.usd2, desc: true }, { key: "tcShip", label: "True cost / shipment", fmt: fmt.usd2, desc: true }],
+    lanes, { key: "failShip", dir: -1 });
+
+  // scenarios
+  const sc = scenarios();
+  const v = document.getElementById("stratVerdict"); v.replaceChildren();
+  const box = document.createElement("div"); const met = sc.delta <= -DATA.assumptions.target_reduction * sc.total;
+  box.className = "verdict" + (met ? " ok" : "");
+  box.textContent = (met ? "Target met. " : "Target NOT supported by the data. ") + C[sc.from].name + " → " + C[sc.to].name + ": projected change in true cost " +
+    (sc.delta >= 0 ? "+" : "") + fmt.usd0(sc.delta) + " (" + (sc.pct >= 0 ? "+" : "") + fmt.pct3(sc.pct) + " of network true cost) vs a -12% target of " + fmt.usdM(-DATA.assumptions.target_reduction * sc.total) + ".";
+  v.appendChild(box);
+  table("tblStrat", [{ key: "lane", label: "Lane" }, { key: "fromN", label: "Shipments (from)" },
+    { key: "fromFail", label: "Failure / shipment", fmt: fmt.usd0 },
+    { key: "base", label: "Baseline cost", fmt: fmt.usd0 }, { key: "scen", label: "Scenario cost", fmt: fmt.usd0 },
+    { key: "delta", label: "Change", fmt: v => (v >= 0 ? "+" : "") + fmt.usd0(v), cls: d => d.delta > 0 ? "pos" : "neg" }], sc.rows, { key: "delta", dir: 1 });
+  vbars("chModeShift", sc.shares.map(s => ({ label: Math.round(s.s * 100) + "%", v: s.pct, color: s.pct >= DATA.assumptions.target_reduction ? "var(--c3)" : "var(--c1)",
+    tipTitle: "Shift " + Math.round(s.s * 100) + "% of Air weight", tip: [["Projected saving", fmt.usdM(s.saving)], ["% of network true cost", fmt.pct1(s.pct)]] })),
+    { ref: DATA.assumptions.target_reduction, refLabel: "12% target" });
+  const n = document.getElementById("modeShiftNote"); n.replaceChildren();
+  const b1 = document.createElement("b"); b1.textContent = fmt.pct1(sc.need);
+  const b2 = document.createElement("b"); b2.textContent = isFinite(sc.be) ? fmt.pct1(sc.be) : "n/a";
+  n.append("Moving ", b1, " of Air weight to Rail would reach the 12% target (bars at or above target in green). Shipment urgency is not in the data, so the movable share must be validated with operations. Break-even late penalty at which ",
+    C[sc.from].name, " stops being cheaper than ", C[sc.to].name, ": ", b2, " of revenue per late shipment.");
+}
+
+/* ---------------------------------------------------------------- controls */
+function opts(sel, values, all) { sel.replaceChildren(); const o = document.createElement("option"); o.value = ""; o.textContent = all; sel.appendChild(o);
+  values.forEach(([v, t]) => { const e = document.createElement("option"); e.value = v; e.textContent = t; sel.appendChild(e); }); }
+function laneOptions() {
+  const f = document.getElementById("fLane"), cur = state.lane;
+  const vals = L.map((l, j) => [String(j), l.name, l]).filter(([, , l]) => (!state.origin || l.o === state.origin) && (!state.dest || l.d === state.dest)).sort((a, b) => a[1].localeCompare(b[1]));
+  opts(f, vals.map(v => [v[0], v[1]]), "All lanes");
+  if (vals.find(v => v[0] === cur)) f.value = cur; else { state.lane = ""; f.value = ""; }
+}
+function init() {
+  document.getElementById("period").textContent = DATA.period + " · " + ROWS.length.toLocaleString("en-US") + " shipments";
+  const chips = document.getElementById("carrierChips");
+  C.forEach((c, i) => { const b = document.createElement("button"); b.className = "chip"; b.setAttribute("aria-pressed", "true");
+    const s = document.createElement("i"); s.className = "sw"; s.style.background = COLOR[i]; b.appendChild(s); b.appendChild(document.createTextNode(c.name));
+    b.title = c.mode + " - contract rate $" + c.rate.toFixed(2) + "/kg, quoted " + c.quoted + " days";
+    b.addEventListener("click", () => { if (state.carriers.has(i)) { if (state.carriers.size > 1) state.carriers.delete(i); } else state.carriers.add(i);
+      b.setAttribute("aria-pressed", state.carriers.has(i)); render(); });
+    chips.appendChild(b); });
+  const origins = [...new Set(L.map(l => l.o))].sort(), dests = [...new Set(L.map(l => l.d))].sort();
+  opts(document.getElementById("fOrigin"), origins.map(o => [o, o]), "All origins");
+  opts(document.getElementById("fDest"), dests.map(o => [o, o]), "All destinations");
+  opts(document.getElementById("fYear"), DATA.years.map(y => [String(y), String(y)]), "All years");
+  laneOptions();
+  document.getElementById("fOrigin").addEventListener("change", e => { state.origin = e.target.value; laneOptions(); render(); });
+  document.getElementById("fDest").addEventListener("change", e => { state.dest = e.target.value; laneOptions(); render(); });
+  document.getElementById("fLane").addEventListener("change", e => { state.lane = e.target.value; render(); });
+  document.getElementById("fYear").addEventListener("change", e => { state.year = e.target.value; render(); });
+  const pen = document.getElementById("aPen"), dmg = document.getElementById("aDmg");
+  pen.value = state.pen; dmg.value = state.dmg;
+  pen.addEventListener("input", e => { state.pen = +e.target.value; render(); });
+  dmg.addEventListener("input", e => { state.dmg = +e.target.value; render(); });
+  document.getElementById("btnReset").addEventListener("click", () => {
+    state.carriers = new Set(C.map((_, i) => i)); state.origin = state.dest = state.lane = state.year = "";
+    state.pen = DATA.assumptions.late_penalty_rate; state.dmg = DATA.assumptions.damage_writeoff_share; pen.value = state.pen; dmg.value = state.dmg;
+    ["fOrigin", "fDest", "fYear"].forEach(id => document.getElementById(id).value = ""); laneOptions();
+    chips.querySelectorAll(".chip").forEach(b => b.setAttribute("aria-pressed", "true")); render(); });
+  const bc = document.getElementById("btnCost"), br = document.getElementById("btnRel");
+  bc.addEventListener("click", () => { state.view = "cost"; bc.setAttribute("aria-pressed", "true"); br.setAttribute("aria-pressed", "false"); render(); });
+  br.addEventListener("click", () => { state.view = "rel"; br.setAttribute("aria-pressed", "true"); bc.setAttribute("aria-pressed", "false"); render(); });
+  document.getElementById("btnTheme").addEventListener("click", () => {
+    const root = document.documentElement, dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    root.dataset.theme = dark ? "light" : "dark"; });
+  let t; window.addEventListener("resize", () => { clearTimeout(t); t = setTimeout(render, 120); });
+  const p = new URLSearchParams(location.search); if (p.get("view") === "rel") br.click();
+  render();
+}
+init();
+</script>
+</body>
+</html>

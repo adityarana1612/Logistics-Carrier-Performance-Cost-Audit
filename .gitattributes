@@ -1,0 +1,14 @@
+# Normalise text files to LF in the repository
+* text=auto eol=lf
+
+# Keep raw and processed data byte-for-byte as delivered
+*.csv  -text
+*.json -text
+
+# Binary deliverables
+*.xlsx binary
+*.png  binary
+*.zip  binary
+
+# Language hint for GitHub
+*.sql  linguist-language=PLpgSQL

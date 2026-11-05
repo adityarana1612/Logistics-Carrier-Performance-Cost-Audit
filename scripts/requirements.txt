@@ -1,0 +1,6 @@
+# Optional - only needed to regenerate the outputs with the scripts in this folder.
+# Validated with Python 3.12.10.
+pandas==3.1.1
+numpy==2.5.4
+openpyxl==3.1.5
+formulas==1.3.4    # used by cache_excel_values.py to evaluate and verify every workbook formula

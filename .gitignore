@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+.ipynb_checkpoints/
+
+# Credentials - never commit
+.env
+kaggle.json
+.kaggle/
+*.pem
+*.key
+
+# Office temp / lock files
+~$*.xlsx
+~$*.xlsm
+~$*.docx
+*.tmp.xlsx
+
+# Local database files
+*.db
+*.sqlite
+pgdata/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp
+
+# Release archives (distribute separately)
+*.zip

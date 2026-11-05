@@ -1,0 +1,60 @@
+table,check,records_affected,action
+carrier,row count,4,profiled
+carrier,null values (all columns),0,none required
+carrier,fully duplicated rows,0,none required
+carrier,duplicate primary key (carrier_id),0,none required
+customer,row count,30,profiled
+customer,null values (all columns),0,none required
+customer,fully duplicated rows,0,none required
+customer,duplicate primary key (customer_id),0,none required
+inventory_snapshot,row count,16800,profiled
+inventory_snapshot,null values (all columns),0,none required
+inventory_snapshot,fully duplicated rows,0,none required
+inventory_snapshot,duplicate primary key (snapshot_id),0,none required
+product,row count,40,profiled
+product,null values (all columns),0,none required
+product,fully duplicated rows,0,none required
+product,duplicate primary key (product_id),0,none required
+production_run,row count,4000,profiled
+production_run,null values (all columns),0,none required
+production_run,fully duplicated rows,0,none required
+production_run,duplicate primary key (production_id),0,none required
+purchase_order,row count,3000,profiled
+purchase_order,null values (all columns),193,see note
+purchase_order,fully duplicated rows,0,none required
+purchase_order,duplicate primary key (po_id),0,none required
+purchase_order_line,row count,7460,profiled
+purchase_order_line,null values (all columns),0,none required
+purchase_order_line,fully duplicated rows,0,none required
+purchase_order_line,duplicate primary key (po_line_id),0,none required
+shipment,row count,4500,profiled
+shipment,null values (all columns),0,none required
+shipment,fully duplicated rows,0,none required
+shipment,duplicate primary key (shipment_id),0,none required
+shipment_line,row count,9059,profiled
+shipment_line,null values (all columns),0,none required
+shipment_line,fully duplicated rows,0,none required
+shipment_line,duplicate primary key (ship_line_id),0,none required
+supplier,row count,20,profiled
+supplier,null values (all columns),0,none required
+supplier,fully duplicated rows,0,none required
+supplier,duplicate primary key (supplier_id),0,none required
+warehouse,row count,4,profiled
+warehouse,null values (all columns),0,none required
+warehouse,fully duplicated rows,0,none required
+warehouse,duplicate primary key (warehouse_id),0,none required
+shipment,orphan foreign key carrier_id,0,none required
+shipment,orphan foreign key warehouse_id,0,none required
+shipment,orphan foreign key customer_id,0,none required
+shipment_line,orphan foreign key shipment_id,0,none required
+shipment_line,orphan foreign key product_id,0,none required
+shipment,shipments without any line,0,none required
+shipment,unparseable ship_date / delivery_date,0,none required
+shipment,delivery_date before ship_date,0,none required
+shipment,"on_time_flag / damaged_flag outside {0,1}",0,none required
+shipment_line,same product on >1 line of a shipment (split lines),316,kept - quantities differ and unit prices match list price; no exact duplicates; rolled up at shipment grain
+shipment_line,exact duplicate lines (all columns except ship_line_id),0,none required
+shipment_line,qty_shipped <= 0,0,none required
+shipment_line,negative revenue or freight_cost,0,none required
+purchase_order,null actual_delivery_date,193,kept - open/cancelled POs; table is out of scope for the carrier audit
+shipment,on_time_flag disagrees with (delivery_date - ship_date) vs carrier quoted days,2224,"documented; on_time_flag kept as SLA metric of record, date variance reported separately"

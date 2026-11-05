@@ -1,0 +1,89 @@
+{
+  "assumptions": {
+    "late_penalty_rate": 0.02,
+    "damage_writeoff_share": 0.25,
+    "reship_carrier_id": 3,
+    "shift_share": 0.2,
+    "from_carrier_rank": 1,
+    "to_carrier_rank": 2,
+    "n_problem_lanes": 3,
+    "min_lane_shipments": 30,
+    "target_reduction": 0.12
+  },
+  "totals": {
+    "shipments": 4500,
+    "units": 1968607,
+    "freight_cost": 21077048.77,
+    "true_cost": 24648001.94,
+    "late_penalty_cost": 947359.77,
+    "damage_cost": 2005800.4,
+    "reshipment_cost": 617793.0,
+    "on_time_pct": 0.8586666666666667,
+    "late_pct": 0.14133333333333334,
+    "damage_rate": 0.041555555555555554,
+    "successful": 3709,
+    "true_cost_per_successful_delivery": 6645.457519547048,
+    "freight_per_on_time_delivery": 5454.722766563147,
+    "revenue": 327234432.35,
+    "weight_kg": 24164469.89,
+    "date_min": "2024-01-01",
+    "date_max": "2025-12-30"
+  },
+  "scenario": {
+    "from_carrier_id": 4,
+    "to_carrier_id": 2,
+    "lanes": [
+      "West-EU > Central-EU",
+      "East-EU > West-EU",
+      "Asia > West-EU"
+    ],
+    "network_true_cost": 24648001.94,
+    "problem_lanes_true_cost": 4505077.319999999,
+    "moved_volume_baseline_cost": 98046.54912164932,
+    "net_change": 547.6262510296965,
+    "pct_change_network": 2.2217876011320067e-05,
+    "pct_change_problem_lanes": 0.00012155756985535968,
+    "pct_change_moved_volume": 0.0055853699690158395,
+    "target_reduction_value": 2957760.2328
+  },
+  "break_even_penalty_rate": 0.35801845941379695,
+  "mode_shift_required_share_for_target": 0.20384716219735324,
+  "mode_shift": [
+    {
+      "share_of_air_weight_shifted": 0.05,
+      "weight_kg_shifted": 306073.6815,
+      "saving": 725484.7702850198,
+      "pct_of_network_true_cost": 0.029433816665993814
+    },
+    {
+      "share_of_air_weight_shifted": 0.1,
+      "weight_kg_shifted": 612147.363,
+      "saving": 1450969.5405700395,
+      "pct_of_network_true_cost": 0.05886763333198763
+    },
+    {
+      "share_of_air_weight_shifted": 0.15,
+      "weight_kg_shifted": 918221.0445,
+      "saving": 2176454.310855059,
+      "pct_of_network_true_cost": 0.08830144999798142
+    },
+    {
+      "share_of_air_weight_shifted": 0.2,
+      "weight_kg_shifted": 1224294.726,
+      "saving": 2901939.081140079,
+      "pct_of_network_true_cost": 0.11773526666397525
+    },
+    {
+      "share_of_air_weight_shifted": 0.25,
+      "weight_kg_shifted": 1530368.4075,
+      "saving": 3627423.8514250987,
+      "pct_of_network_true_cost": 0.14716908332996906
+    },
+    {
+      "share_of_air_weight_shifted": 0.3,
+      "weight_kg_shifted": 1836442.089,
+      "saving": 4352908.621710118,
+      "pct_of_network_true_cost": 0.17660289999596285
+    }
+  ]
+}
